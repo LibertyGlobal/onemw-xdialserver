@@ -41,8 +41,8 @@ static int ssdp_resource_id_ = 0;
  * ssdp settings
  */
 static const char *dial_ssdp_ST_target = "urn:dial-multiscreen-org:service:dial:1";
-static const char *dial_ssdp_USN_fmt = "uuid:%s::urn:dial-multiscreen-org:service:dial:1";
-static const char *dial_ssdp_LOCATION_fmt = "http://%s:%d/dd.xml";
+#define DIAL_SSDP_USN_FMT "uuid:%s::urn:dial-multiscreen-org:service:dial:1"
+#define DIAL_SSDP_LOCATION_FMT "http://%s:%d/dd.xml"
 
 
 /*
@@ -159,8 +159,8 @@ int gdial_ssdp_init(SoupServer *ssdp_http_server, GMutex *friendlyname_mutex, GD
   GDIAL_CHECK("BOOTID.UPNP.ORG");
 
   GSSDPResourceGroup *ssdp_resource_group = gssdp_resource_group_new(ssdp_client);
-  gchar *dial_ssdp_USN = g_strdup_printf(dial_ssdp_USN_fmt, gdial_options_->uuid);
-  gchar *dial_ssdp_LOCATION = g_strdup_printf(dial_ssdp_LOCATION_fmt, iface_ipv4_address, GDIAL_SSDP_HTTP_PORT);
+  gchar *dial_ssdp_USN = g_strdup_printf(DIAL_SSDP_USN_FMT, gdial_options_->uuid);
+  gchar *dial_ssdp_LOCATION = g_strdup_printf(DIAL_SSDP_LOCATION_FMT, iface_ipv4_address, GDIAL_SSDP_HTTP_PORT);
   ssdp_resource_id_ =
     gssdp_resource_group_add_resource_simple (ssdp_resource_group, dial_ssdp_ST_target, dial_ssdp_USN, dial_ssdp_LOCATION);
   gssdp_resource_group_set_available (ssdp_resource_group, FALSE);
