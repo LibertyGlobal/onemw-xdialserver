@@ -237,9 +237,9 @@ int main(int argc, char *argv[]) {
   gdail_plat_register_friendlyname_cb(server_friendlyname_handler);
   gdail_plat_register_registerapps_cb (server_register_application);
 
-  SoupServer * rest_http_server = soup_server_new(NULL);
-  SoupServer * ssdp_http_server = soup_server_new(NULL);
-  SoupServer * local_rest_http_server = soup_server_new(NULL);
+  SoupServer * rest_http_server = soup_server_new(NULL, NULL);
+  SoupServer * ssdp_http_server = soup_server_new(NULL, NULL);
+  SoupServer * local_rest_http_server = soup_server_new(NULL, NULL);
   soup_server_add_handler(rest_http_server, "/", gdial_http_server_throttle_callback, NULL, NULL);
   soup_server_add_handler(ssdp_http_server, "/", gdial_http_server_throttle_callback, NULL, NULL);
 
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
 
     while (!json_object_iter_equal(&it, &it_end)) {
         const char *config_name = json_object_iter_peek_name(&it);
-        const char *app_name = get_app_name(config_name);
+        char *app_name = get_app_name(config_name);
         g_print("%s is enabled from cmdline\r\n", app_name);
 
         struct json_object *origins = json_object_iter_peek_value(&it);
