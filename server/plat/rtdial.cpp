@@ -225,7 +225,7 @@ static GSource *attachRtRemoteSource()
     return source;
 }
 
-void rtdail_register_activation_cb(rtdial_activation_cb cb)
+void rtdial_register_activation_cb(rtdial_activation_cb cb)
 {
   g_activation_cb = cb;
 }

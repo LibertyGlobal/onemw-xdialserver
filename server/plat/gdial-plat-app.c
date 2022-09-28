@@ -127,10 +127,10 @@ static gboolean GSourceFunc_application_stop_async_cb(gpointer user_data) {
   return FALSE;
 }
 
-void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)
+void gdial_plat_register_activation_cb(gdial_plat_activation_cb cb)
 {
   g_activation_cb = cb;
-  rtdail_register_activation_cb((rtdial_activation_cb)cb);
+  rtdial_register_activation_cb((rtdial_activation_cb)cb);
 }
 
 void gdial_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb)
