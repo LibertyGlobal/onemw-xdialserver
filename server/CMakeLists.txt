@@ -94,3 +94,9 @@ target_link_libraries (gdial-server
   ${JSON-C_LIBRARIES}
   gdial-plat
 )
+
+install(DIRECTORY DESTINATION share)
+install(DIRECTORY DESTINATION share/xdial)
+
+install (TARGETS gdial-server DESTINATION share/xdial/)
+

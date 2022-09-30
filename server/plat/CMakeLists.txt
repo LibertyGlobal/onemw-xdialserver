@@ -62,3 +62,5 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
 target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lrtRemote -lrtCore)
+
+install (TARGETS gdial-plat DESTINATION share/xdial/)
