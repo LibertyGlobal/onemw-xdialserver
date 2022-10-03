@@ -39,6 +39,7 @@ GDialAppError gdial_plat_application_hide(const gchar *app_name, gint instance_i
 GDialAppError gdial_plat_application_resume(const gchar *app_name, gint instance_id);
 GDialAppError gdial_plat_application_stop(const gchar *app_name, gint instance_id);
 GDialAppError gdial_plat_application_state(const gchar *app_name, gint instance_id, GDialAppState *state);
+GDialAppError gdial_plat_application_state_wait(const gchar *app_name, gint instance_id, GDialAppState state, unsigned int tiemout_ms);
 
 void * gdial_plat_application_start_async(const gchar *app_name, const gchar *payload, const gchar *query, const gchar *additional_data_url, void *user_data);
 void * gdial_plat_application_state_async(const gchar *app_name, gint instance_id, void *user_data);

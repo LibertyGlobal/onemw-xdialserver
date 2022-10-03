@@ -50,6 +50,9 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
 GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_port, const gchar *app_name, gboolean encode);
 GDIAL_STATIC GDialAppRegistry *gdial_rest_server_find_app_registry(GDialRestServer *self, const gchar *app_name);
 
+GThreadPool * gdial_rest_http_server_create_app_handler_thread_pool();
+void gdial_rest_http_server_destroy_app_handler_thread_pool(GThreadPool * pool);
+
 G_END_DECLS
 
 #endif

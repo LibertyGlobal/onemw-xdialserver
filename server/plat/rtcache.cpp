@@ -17,96 +17,105 @@
  * limitations under the License.
 */
 
+#include <glib.h>
 #include "rtcache.hpp"
-
-std::string rtAppStatusCache::Netflix_AppCacheId = "DialNetflix";
-std::string rtAppStatusCache::Youtube_AppCacheId = "DialYoutube";
-
-std::string rtAppStatusCache :: getAppCacheId(const char *app_name)
-{
-     printf("RTCACHE : %s\n",__FUNCTION__);
-
-     if(!strcmp(app_name,"Netflix"))
-          return rtAppStatusCache::Netflix_AppCacheId;
-     else if(!strcmp(app_name,"YouTube"))
-          return rtAppStatusCache::Youtube_AppCacheId;
-     else
-     {
-          printf("Invalid App Name\n");
-          return "INVALID";
-     }
-
-}
-
-void rtAppStatusCache :: setAppCacheId(const char *app_name,std::string id)
-{
-     printf("RTCACHE : %s\n",__FUNCTION__);
-     if(!strcmp(app_name,"Netflix"))
-     {
-         rtAppStatusCache::Netflix_AppCacheId = id;
-         printf("App cache Id of Netflix updated to %s\n",rtAppStatusCache::Netflix_AppCacheId.c_str());
-     }
-     else if(!strcmp(app_name,"YouTube"))
-     {
-         rtAppStatusCache::Youtube_AppCacheId = id;
-         printf("App cache Id of Youtube updated to %s\n",rtAppStatusCache::Youtube_AppCacheId.c_str());
-     }
-     else
-     {
-         printf("Invalid App Name \n");
-     }
-
-}
 
 rtError rtAppStatusCache::UpdateAppStatusCache(rtValue app_status)
 {
-     printf("RTCACHE : %s\n",__FUNCTION__);
+     std::unique_lock<std::mutex> lock(CacheMutex);
+     g_print("RTCACHE : %s\n",__FUNCTION__);
 
       rtError err;
       rtObjectRef temp = app_status.toObject();
 
-      const char *App_name = strdup(temp.get<rtString>("applicationName").cString());
-      printf("App Name = %s\nApp ID = %s\nApp State = %s\nError = %s\n",App_name,temp.get<rtString>("applicationId").cString(),temp.get<rtString>("state").cString(),temp.get<rtString>("error").cString());
+      std::string cache_name_id = std::string(temp.get<rtString>("applicationName").cString());
+      g_print("App Name = %s\nApp ID = %s\nApp State = %s\nError = %s\n",cache_name_id.c_str(),temp.get<rtString>("applicationId").cString(),temp.get<rtString>("state").cString(),temp.get<rtString>("error").cString());
 
-      std::string id = getAppCacheId(App_name);
-
-      if(doIdExist(id)) {
-          printf("erasing old data\n");
-          err = ObjectCache->erase(id);
+      if(doIdExist(cache_name_id)) {
+          g_print("erasing old data\n");
+          err = ObjectCache->erase(cache_name_id);
       }
 
-      err = ObjectCache->insert(id,temp);
+      err = ObjectCache->insert(cache_name_id, temp);
+      CacheModified = true;
+      CacheCondVar.notify_all(); 
       return err;
 }
 
-const char * rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
-{
-     printf("RTCACHE : %s\n",__FUNCTION__);
+bool rtAppStatusCache::WaitForAppState(const char * app_name, const char * desired_state, unsigned int timeout_ms) {
+     bool result = false;
+     bool wait_for_stopped = (strcmp(desired_state, "stopped") == 0);
+     std::unique_lock<std::mutex> lock(CacheMutex);
+     unsigned int time_left = timeout_ms;
+     unsigned long time_elapsed = 0;
+     CacheModified = false;
+     std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+     g_print("RTCACHE : %s Enter waiting application: %s state: %s\n", __FUNCTION__, app_name, desired_state);
+     while (time_elapsed < timeout_ms) {
+          const char * state = SearchAppStatusInCacheLocked(app_name);
+          if (strcmp(state, "NOT_FOUND") == 0) {
+               g_print("RTCACHE : %s application: %s Not found\n", __FUNCTION__, app_name);
+               if (wait_for_stopped) {
+                    result = true;
+                    g_print("RTCACHE : %s waiting for stopped - leave\n", __FUNCTION__);
+                    break;
+               }
+          }
+          if (strcmp(state, desired_state) == 0) {
+               g_print("RTCACHE : %s desired state: %s, application: %s - leave\n", __FUNCTION__, desired_state, app_name);
+               result = true;
+               break;
+          }
+          g_print("RTCACHE : %s Waiting ... %u ms\n", __FUNCTION__, time_left);
+          CacheCondVar.wait_for(lock, std::chrono::milliseconds(time_left), [this] { return CacheModified;});
+          CacheModified = false;
+          g_print("RTCACHE : %s Waitinig done\n", __FUNCTION__);
+          std::chrono::steady_clock::time_point now_time = std::chrono::steady_clock::now();
+          time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_time).count();
+          g_print("RTCACHE : %s Elapsed time %ld\n", __FUNCTION__, time_elapsed);
+          if (time_elapsed < timeout_ms) {
+               time_left = timeout_ms - time_elapsed;
+               g_print("RTCACHE : %s time_left: %u\n", __FUNCTION__, time_left);
+          }
+     }
+     g_print("RTCACHE : %s Leave application: %s state: %s %d\n", __FUNCTION__, app_name, desired_state, result);
+     return result;
+}
 
-      std::string id = getAppCacheId(app_name);
-      if(doIdExist(id))
+const char * rtAppStatusCache::SearchAppStatusInCacheLocked(const char *app_name)
+{
+     g_print("RTCACHE : %s\n",__FUNCTION__);
+
+      if(doIdExist(app_name))
       {
-         rtObjectRef state_param = ObjectCache->findObject(id);
+         rtObjectRef state_param = ObjectCache->findObject(std::string(app_name));
 
          char *state = strdup(state_param.get<rtString>("state").cString());
-         printf("App Name = %s\nApp ID = %s\nError = %s\n",state_param.get<rtString>("applicationName").cString(),state_param.get<rtString>("applicationId").cString(),state_param.get<rtString>("error").cString());
-         printf("App State = %s\n",state);
+         g_print("App Name = %s\nApp ID = %s\nError = %s\n",state_param.get<rtString>("applicationName").cString(),state_param.get<rtString>("applicationId").cString(),state_param.get<rtString>("error").cString());
+         g_print("App State = %s\n",state);
          return state;
       }
 
       return "NOT_FOUND";
+
+}
+
+const char * rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
+{
+     std::unique_lock<std::mutex> lock(CacheMutex);
+     return SearchAppStatusInCacheLocked(app_name);
 }
 
 bool rtAppStatusCache::doIdExist(std::string id)
 {
-    printf("RTCACHE : %s : \n",__FUNCTION__);
+    g_print("RTCACHE : %s : \n",__FUNCTION__);
     auto now = std::chrono::steady_clock::now();
 
     if(ObjectCache->touch(id,now)!= RT_OK)
     {
-       printf("False\n");
+       g_print("False\n");
        return false;
     }
-    printf("True\n");
+    g_print("True\n");
     return true;
 }

@@ -191,6 +191,7 @@ int main(int argc, char *argv[]) {
          break;
      }
   }
+  GThreadPool * thread_pool = gdial_rest_http_server_create_app_handler_thread_pool();
   gdial_plat_init(g_main_context_default());
 
   gdial_plat_register_activation_cb(server_activation_handler);
@@ -208,6 +209,7 @@ int main(int argc, char *argv[]) {
   if (!success) {
     g_printerr("%s\r\n", error->message);
     g_error_free(error);
+    gdial_rest_http_server_destroy_app_handler_thread_pool(thread_pool);
     return EXIT_FAILURE;
   }
   else {
@@ -217,6 +219,7 @@ int main(int argc, char *argv[]) {
     if (!success) {
       g_printerr("%s\r\n", error->message);
       g_error_free(error);
+      gdial_rest_http_server_destroy_app_handler_thread_pool(thread_pool);
       return EXIT_FAILURE;
     }
     else {
@@ -224,6 +227,7 @@ int main(int argc, char *argv[]) {
       if (!success) {
         g_printerr("%s\r\n", error->message);
         g_error_free(error);
+        gdial_rest_http_server_destroy_app_handler_thread_pool(thread_pool);
         return EXIT_FAILURE;
       }
     }
@@ -293,6 +297,7 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
+  gdial_rest_http_server_destroy_app_handler_thread_pool(thread_pool);
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);

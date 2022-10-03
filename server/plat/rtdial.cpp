@@ -471,6 +471,18 @@ int gdial_os_application_resume(const char *app_name, int instance_id) {
     return GDIAL_APP_ERROR_NONE;
 }
 
+int gdial_os_application_state_wait(const char *app_name, int instance_id, GDialAppState state, unsigned int timeout_ms) {
+    const char * str_state = state == GDIAL_APP_STATE_RUNNING ? "running" :
+                              state == GDIAL_APP_STATE_HIDE ? "suspended" :
+                              state == GDIAL_APP_STATE_STOPPED ? "stopped" : NULL;
+    if (str_state == NULL) {
+        printf("RTDIAL %s: unexpected state: %d\n", __FUNCTION__, state);
+        return 0;
+    } else {
+        return AppCache->WaitForAppState(app_name, str_state, timeout_ms) ? 1 : 0;
+    }
+}
+
 int gdial_os_application_state(const char *app_name, int instance_id, GDialAppState *state) {
     printf("RTDIAL gdial_os_application_state: App = %s \n",app_name);
     const char* State = AppCache->SearchAppStatusInCache(app_name);
