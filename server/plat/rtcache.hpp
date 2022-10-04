@@ -20,7 +20,7 @@
 #ifndef _RT_CACHE_H_
 #define _RT_CACHE_H_
 
-#include "rtRemoteObjectCache.hpp"
+#include "rtRemoteObjectCache.h"
 #include "rtObject.h"
 #include "rtRemote.h"
 #include <sstream>
