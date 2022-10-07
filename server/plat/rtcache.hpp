@@ -27,7 +27,8 @@
 #include <iostream>
 #include <chrono>
 #include <stdbool.h>
-
+#include <mutex>
+#include <condition_variable>
 using namespace std;
 
 class rtAppStatusCache : public rtObject
@@ -35,16 +36,16 @@ class rtAppStatusCache : public rtObject
 public:
     rtAppStatusCache(rtRemoteEnvironment* env) {ObjectCache = new rtRemoteObjectCache(env);};
     ~rtAppStatusCache() {delete(ObjectCache); };
-    std::string getAppCacheId(const char *app_name);
-    void setAppCacheId(const char *app_name,std::string id);
     rtError UpdateAppStatusCache(rtValue app_status);
     const char * SearchAppStatusInCache(const char *app_name);
-    bool doIdExist(std::string id);
-
+    bool WaitForAppState(const char * app_name, const char * desired_state, unsigned int timeout_ms);
 private:
+    bool doIdExist(std::string id);
+    const char * SearchAppStatusInCacheLocked(const char *app_name);
     rtRemoteObjectCache* ObjectCache;
-    static std::string Netflix_AppCacheId;
-    static std::string Youtube_AppCacheId;
+    std::mutex CacheMutex;
+    std::condition_variable CacheCondVar;
+    bool CacheModified = false;
 };
 
 #endif

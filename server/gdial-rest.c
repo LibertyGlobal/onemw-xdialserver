@@ -273,6 +273,202 @@ GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_po
   }
 }
 
+static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, SoupMessage* msg, const gchar *app_name, guint wait_timeout);
+static void gdial_rest_server_handle_POST_hide(SoupMessage *msg, GDialApp *app, guint wait_timeout);
+static void gdial_rest_server_handle_DELETE(SoupMessage *msg, GDialApp *app, guint wait_timeout);
+
+static gboolean gdial_rest_server_wait_for_app_state(const gchar * app_name, GDialAppState desired_state, guint timeout_ms) {
+  g_print("Start waiting for application: %s state: %d timeout: %u\n", app_name,  desired_state, timeout_ms);
+  return (gdial_plat_application_state_wait(app_name, 0, desired_state, timeout_ms) == GDIAL_APP_ERROR_NONE);
+}
+
+// thread pool instance to handle application control requests
+static GThreadPool * _poolInstance = NULL;
+// pending tasks queue size limit
+#define REST_API_THREAD_POOL_NOT_PROCESSED_LIMIT 5
+// waiting for state change timeouts in milliseconds
+#define APPLICATION_STATE_CHANGE_START_TIMEOUT (1000 * 35)
+#define APPLICATION_STATE_CHANGE_HIDE_TIMEOUT  (1000 * 35)
+#define APPLICATION_STATE_CHANGE_STOP_TIMEOUT  (1000 * 35)
+
+typedef enum {
+  POST,
+  POST_HIDE,
+  DELETE
+} MethodType;
+
+typedef struct {
+  // common data
+  MethodType method;          // method to handle
+  SoupServer * server;        // rest server reference
+  SoupMessage * message;      // message to handle
+  guint wait_timeout;         // waiting timeout
+
+  // request specific data
+  GDialRestServer *g_server;  // gdial server - used by POST
+  gchar * app_name;           // application name - used by POST
+  GDialApp *app;              // application reference - used by POST_HIDE and DELETE
+} AppsHandlerThreadPoolData;
+
+static gboolean gdial_rest_server_send(MethodType method, SoupServer * server, SoupMessage * message ,GThreadPool * thread_pool, AppsHandlerThreadPoolData * data) {
+  gboolean result = FALSE;
+  guint not_processed = g_thread_pool_unprocessed(thread_pool);
+  if (not_processed < REST_API_THREAD_POOL_NOT_PROCESSED_LIMIT) {
+    GError *error = NULL;
+
+    data->method = method;
+    data->server = server;
+    data->message = message;
+    g_object_ref(data->message);
+    g_object_ref(data->server);
+
+    soup_server_pause_message(data->server, data->message);
+    if (g_thread_pool_push(thread_pool, data, &error)) {
+      g_print("%s: request data in queue\n", __FUNCTION__);
+      result = TRUE;
+    } else {
+      g_printerr("%s: Cannot push data into queue\n", __FUNCTION__);
+      // need to respond somehow, SOUP_STATUS_INTERNAL_SERVER_ERROR is reasonable here
+      gdial_soup_message_set_http_error(data->message, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+      soup_server_unpause_message (data->server, data->message);
+
+      g_object_unref(data->message);
+      g_object_unref(data->server);
+    }
+  } else {
+    g_printerr("%s: Queue overloaded number of items: %u\n", __FUNCTION__, not_processed);
+    // if the queue of items contains REST_API_THREAD_POOL_NOT_PROCESSED_LIMIT items respond with SOUP_STATUS_FORBIDDEN
+    gdial_soup_message_set_http_error(data->message, SOUP_STATUS_FORBIDDEN);
+    soup_server_unpause_message(data->server, data->message);
+
+    g_object_unref(data->message);
+    g_object_unref(data->server);
+  }
+  return result;
+}
+
+static void gdial_rest_server_handle_POST_and_wait(SoupServer * soup_server, GDialRestServer *server, SoupMessage* msg, const gchar *app_name) {
+  if (_poolInstance == NULL) {
+    g_printerr("%s: NULL _poolInstance\n", __FUNCTION__);
+    return;
+  }
+  AppsHandlerThreadPoolData * tpData = g_new0(AppsHandlerThreadPoolData, 1);
+  
+  tpData->wait_timeout = APPLICATION_STATE_CHANGE_START_TIMEOUT;
+  tpData->g_server = server;
+  tpData->app_name = g_strdup(app_name);
+  g_object_ref(tpData->g_server);
+
+  if (!gdial_rest_server_send(POST, soup_server, msg, _poolInstance, tpData)) {
+    g_free(tpData->app_name);
+    g_object_unref(tpData->g_server);
+    g_free(tpData);
+  }
+}
+
+static void gdial_rest_server_handle_POST_hide_and_wait(SoupServer * soup_server, SoupMessage *msg, GDialApp *app) {
+  if (_poolInstance == NULL) {
+    g_printerr("%s: NULL _poolInstance\n", __FUNCTION__);
+    return;
+  }
+  AppsHandlerThreadPoolData * tpData = g_new0(AppsHandlerThreadPoolData, 1);
+
+  tpData->wait_timeout = APPLICATION_STATE_CHANGE_HIDE_TIMEOUT;
+  tpData->app = app;
+  g_object_ref(app);
+
+  if (!gdial_rest_server_send(POST_HIDE, soup_server, msg, _poolInstance, tpData)) {
+    g_object_unref(app);
+    g_free(tpData);
+  }  
+}
+
+static void gdial_rest_server_handle_DELETE_and_wait(SoupServer * soup_server, SoupMessage *msg, GDialApp *app) {
+  if (_poolInstance == NULL) {
+    g_printerr("%s: NULL _poolInstance\n", __FUNCTION__);
+    return;
+  }
+  AppsHandlerThreadPoolData * tpData = g_new0(AppsHandlerThreadPoolData, 1);
+  
+  tpData->wait_timeout = APPLICATION_STATE_CHANGE_STOP_TIMEOUT;
+  tpData->app = app;
+  g_object_ref(app);
+
+  if (!gdial_rest_server_send(DELETE, soup_server, msg, _poolInstance, tpData)) {
+    g_object_unref(app);
+    g_free(tpData);
+  }  
+}
+
+// handler of the messages in the thread pool
+static void gdial_rest_http_server_apps_thread_pool_function_handler(gpointer data, gpointer user_data) {
+  if (data != NULL) {
+    AppsHandlerThreadPoolData * handlerData = (AppsHandlerThreadPoolData *)data;
+    g_print("%s: start processing request ...\n", __FUNCTION__);
+    if (handlerData->method == POST) {
+      gdial_rest_server_handle_POST(handlerData->g_server, handlerData->message, handlerData->app_name, handlerData->wait_timeout);
+    } else if (handlerData->method == POST_HIDE) {
+      gdial_rest_server_handle_POST_hide(handlerData->message, handlerData->app, handlerData->wait_timeout);
+    } else if (handlerData->method == DELETE) {
+      gdial_rest_server_handle_DELETE(handlerData->message, handlerData->app, handlerData->wait_timeout);
+    } else {
+      g_printerr("%s: unhandled case\n", __FUNCTION__);
+      gdial_soup_message_set_http_error(handlerData->message, SOUP_STATUS_NOT_FOUND);
+    }
+    g_print("%s: processing request done\n", __FUNCTION__);
+
+    soup_server_unpause_message(handlerData->server, handlerData->message);
+
+    g_object_unref(handlerData->message);
+    g_object_unref(handlerData->server);
+
+    if (handlerData->g_server) {
+      g_object_unref(handlerData->g_server);
+    }
+    if (handlerData->app) {
+      g_object_unref(handlerData->app);
+    }
+    if (handlerData->app_name) {
+      g_free(handlerData->app_name);
+    }
+    g_free(handlerData);
+
+    g_print("%s: finish processing request\n", __FUNCTION__);
+  } else {
+    g_printerr("%s: null data to process\n", __FUNCTION__);
+  }
+}
+
+GThreadPool * gdial_rest_http_server_create_app_handler_thread_pool() {
+  GThreadPool * result = _poolInstance;
+  if (_poolInstance == NULL) {
+    GError *error = NULL;
+    g_print("%s: thread pool create\n", __FUNCTION__);
+    result = g_thread_pool_new( gdial_rest_http_server_apps_thread_pool_function_handler, NULL, 1, TRUE, &error);
+    if (error == NULL) {
+      g_print("%s: thread pool created %p\n", __FUNCTION__, _poolInstance);
+      g_thread_pool_set_max_idle_time(0);
+      _poolInstance = result;
+    } else {
+      g_printerr("%s: thread pool not created %s\n", __FUNCTION__, error->message);
+    }
+  } else {
+    g_print("%s: thread pool already created %p\n", __FUNCTION__, _poolInstance);
+  }
+  return result;
+}
+
+void gdial_rest_http_server_destroy_app_handler_thread_pool(GThreadPool * pool) {
+  if (pool) {
+    g_print("%s: pool %p free\n", __FUNCTION__, pool);
+    _poolInstance = NULL;
+    g_thread_pool_free(pool, FALSE, TRUE);
+    g_print("%s: pool %p free done\n", __FUNCTION__, pool);
+  } else {
+      g_printerr("%s: thread pool is null\n", __FUNCTION__);
+  }
+}
+
 static void gdial_rest_app_state_changed_cb(GDialApp *app, gpointer signal_param_user_data, gpointer user_data) {
   GDialRestServer *gdial_rest_server = (GDIAL_REST_SERVER(user_data));
   g_return_if_fail(gdial_rest_server_is_app_registered(gdial_rest_server, app->name));
@@ -316,7 +512,7 @@ static GDialApp *gdial_rest_server_check_instance(GDialApp *app, const gchar *in
   return app_by_instance;
 }
 
-static void gdial_rest_server_handle_POST_hide(SoupMessage *msg, GDialApp *app) {
+static void gdial_rest_server_handle_POST_hide(SoupMessage *msg, GDialApp *app, guint wait_timeout) {
   gdial_rest_server_http_return_if_fail((gdial_app_state(app) == GDIAL_APP_ERROR_NONE), msg, SOUP_STATUS_NOT_FOUND);
   gdial_rest_server_http_return_if_fail((GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_RUNNING) || (GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_HIDE), msg, SOUP_STATUS_NOT_FOUND);
 
@@ -324,6 +520,12 @@ static void gdial_rest_server_handle_POST_hide(SoupMessage *msg, GDialApp *app) 
 
   if ( (app_error = gdial_app_hide(app)) == GDIAL_APP_ERROR_NONE) {
      g_warn_if_fail(gdial_app_state(app) == GDIAL_APP_ERROR_NONE && GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_HIDE);
+     if (gdial_rest_server_wait_for_app_state(app->name, GDIAL_APP_STATE_HIDE, wait_timeout)) {
+      g_print("%s: application: %s hidden, before timeout: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+     } else {
+      g_printerr("%s: application: %s not hidden, timeout expired: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+      gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    }
   }
   else if (app_error == GDIAL_APP_ERROR_NOT_IMPLEMENTED) {
     gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -338,17 +540,29 @@ static void gdial_rest_server_handle_POST_hide(SoupMessage *msg, GDialApp *app) 
   gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
 }
 
-static void gdial_rest_server_handle_DELETE(SoupMessage *msg, GHashTable *query, GDialApp *app) {
+static void gdial_rest_server_handle_DELETE(SoupMessage *msg, GDialApp *app, guint wait_timeout) {
   gdial_rest_server_http_return_if_fail(g_strcmp0(app->name, "system") != 0, msg, SOUP_STATUS_FORBIDDEN);
   gdial_rest_server_http_return_if_fail((gdial_app_state(app) == GDIAL_APP_ERROR_NONE), msg, SOUP_STATUS_NOT_FOUND);
   gdial_rest_server_http_return_if_fail((GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_RUNNING) || (GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_HIDE), msg, SOUP_STATUS_NOT_FOUND);
 
   if (gdial_app_stop(app) == GDIAL_APP_ERROR_NONE) {
     g_warn_if_fail(gdial_app_state(app) == GDIAL_APP_ERROR_NONE && GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_STOPPED);
+    if (gdial_rest_server_wait_for_app_state(app->name, GDIAL_APP_STATE_STOPPED, wait_timeout)) {
+      g_print("%s: application: %s stopped, before timeout: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+    } else {
+      g_printerr("%s: application: %s not stopped, timeout expired: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+      gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    }
   }
   else {
     g_printerr("gdial_app_stop(%s) failed, force shutdown\r\n", app->name);
     gdial_app_force_shutdown(app);
+    if (gdial_rest_server_wait_for_app_state(app->name, GDIAL_APP_STATE_STOPPED, wait_timeout)) {
+      g_print("%s: application %s stopped, before timeout: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+    } else {
+      g_printerr("%s: application: %s not stopped, timeout expired: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+      gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    }    
   }
 
   soup_message_headers_replace(msg->response_headers, "Content-Type", "text/plain; charset=utf-8");
@@ -357,7 +571,7 @@ static void gdial_rest_server_handle_DELETE(SoupMessage *msg, GHashTable *query,
   g_object_unref(app);
 }
 
-static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, SoupMessage* msg, GHashTable *query, const gchar *app_name) {
+static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, SoupMessage* msg, const gchar *app_name, guint wait_timeout) {
   GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(gdial_rest_server, app_name);
   gdial_rest_server_http_return_if_fail(app_registry, msg, SOUP_STATUS_NOT_FOUND);
   if (msg->request_body && msg->request_body->data && msg->request_body->length) {
@@ -427,6 +641,14 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       }
     }
     start_error = gdial_app_start(app, payload_safe, query_str_safe, additional_data_url_safe, gdial_rest_server);
+    if (start_error == GDIAL_APP_ERROR_NONE) {
+      if (gdial_rest_server_wait_for_app_state(app->name, GDIAL_APP_STATE_RUNNING, wait_timeout)) {
+        g_print("%s: application started: %s before timeout: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+      } else {
+        g_printerr("%s: application: %s not started, timeout expired: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+        start_error = GDIAL_APP_ERROR_INTERNAL;
+      }
+    }
     if (query_str_safe) g_free(query_str_safe);
     if (payload_safe) g_free(payload_safe);
     g_free(additional_data_url_safe);
@@ -438,6 +660,14 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
      * app exist, and could be in hidden state, so resume;
      */
     start_error = gdial_app_start(app, NULL, NULL, NULL, gdial_rest_server);
+    if (start_error == GDIAL_APP_ERROR_NONE) {
+      if (gdial_rest_server_wait_for_app_state(app->name, GDIAL_APP_STATE_RUNNING, wait_timeout)) {
+        g_print("%s: application started: %s before timeout: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+      } else {
+        g_printerr("%s: application: %s not started, timeout expited: %u [ms]\n", __FUNCTION__, app->name, wait_timeout);
+        start_error = GDIAL_APP_ERROR_INTERNAL;
+      }
+    }
   }
 
   /*
@@ -808,7 +1038,8 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
       gdial_rest_server_handle_OPTIONS(msg, "GET, POST, OPTIONS");
     }
     else if (msg->method == SOUP_METHOD_POST) {
-      gdial_rest_server_handle_POST(gdial_rest_server, msg, query, app_name);
+      gdial_rest_server_handle_POST_and_wait(server, gdial_rest_server, msg, app_name);
+      return;
     }
     else if (msg->method == SOUP_METHOD_GET) {
       /*
@@ -850,7 +1081,8 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
         GDialApp *app = gdial_app_find_instance_by_name(app_name);
         GDialApp *app_by_instance = gdial_rest_server_check_instance(app, instance);
         if (app_by_instance) {
-          gdial_rest_server_handle_DELETE(msg, query, app);
+          gdial_rest_server_handle_DELETE_and_wait(server, msg, app);
+          return;
         }
         else {
           g_printerr("app to delete is not found\r\n");
@@ -877,7 +1109,8 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
         GDialApp *app = gdial_app_find_instance_by_name(app_name);
         GDialApp *app_by_instance = gdial_rest_server_check_instance(app, instance);
         if (app_by_instance) {
-          gdial_rest_server_handle_POST_hide(msg, app);
+          gdial_rest_server_handle_POST_hide_and_wait(server, msg, app);
+          return;
         }
         else {
           g_printerr("app to hide is not found\r\n");
