@@ -417,9 +417,9 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
 
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
-    const char* State = AppCache->SearchAppStatusInCache(app_name);
+    std::string State = AppCache->SearchAppStatusInCache(app_name);
     /* always to issue stop request to have a failsafe strategy */
-    if (0 && strcmp(State,"running") != 0)
+    if (0 && State != "running")
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str());
 
@@ -433,9 +433,9 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
 int gdial_os_application_hide(const char *app_name, int instance_id) {
     #if 0
     printf("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
-    const char* State = AppCache->SearchAppStatusInCache(app_name);
+    std::string State = AppCache->SearchAppStatusInCache(app_name);
     /* always to issue hide request to have a failsafe strategy */
-    if (0 && strcmp(State,"running") != 0) {
+    if (0 && State != "running") {
         return GDIAL_APP_ERROR_BAD_REQUEST;
     }
     rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str());
@@ -446,8 +446,8 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
     return GDIAL_APP_ERROR_NONE;
     #else
     printf("RTDIAL gdial_os_application_hide: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
-    const char* State = AppCache->SearchAppStatusInCache(app_name);
-    if (strcmp(State,"running") != 0)
+    std::string State = AppCache->SearchAppStatusInCache(app_name);
+    if (State != "running")
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->hideApplication(app_name,std::to_string(instance_id).c_str());
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
@@ -460,8 +460,8 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
 
 int gdial_os_application_resume(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_resume: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
-     const char* State = AppCache->SearchAppStatusInCache(app_name);
-    if (strcmp(State,"running") == 0)
+     std::string State = AppCache->SearchAppStatusInCache(app_name);
+    if (State == "running")
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->resumeApplication(app_name,std::to_string(instance_id).c_str());
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
@@ -473,12 +473,12 @@ int gdial_os_application_resume(const char *app_name, int instance_id) {
 
 int gdial_os_application_state(const char *app_name, int instance_id, GDialAppState *state) {
     printf("RTDIAL gdial_os_application_state: App = %s \n",app_name);
-    const char* State = AppCache->SearchAppStatusInCache(app_name);
-    printf("RTDIAL getApplicationState: AppState = %s \n",State);
+    std::string State = AppCache->SearchAppStatusInCache(app_name);
+    printf("RTDIAL getApplicationState: AppState = %s \n",State.c_str());
     /*
      *  return cache, but also trigger a refresh
      */
-    if(true || strcmp(State,"NOT_FOUND") == 0) {
+    if(true || State == "NOT_FOUND") {
         rtCastError ret = DialObj->getApplicationState(app_name,NULL);
         if (RTCAST_ERROR_RT(ret) != RT_OK) {
             printf("RTDIAL: DialObj.getApplicationState failed!!! Error: %s\n",rtStrError(RTCAST_ERROR_RT(ret)));
@@ -486,10 +486,10 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
         }
     }
 
-    if (strcmp(State,"running") == 0) {
+    if (State == "running") {
         *state = GDIAL_APP_STATE_RUNNING;
     }
-    else if (strcmp(State,"suspended") == 0) {
+    else if (State == "suspended") {
         *state = GDIAL_APP_STATE_HIDE;
     }
     else {
