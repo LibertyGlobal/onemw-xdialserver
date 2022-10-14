@@ -52,8 +52,8 @@ bool rtAppStatusCache::WaitForAppState(const char * app_name, const char * desir
      std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
      g_print("RTCACHE : %s Enter waiting application: %s state: %s\n", __FUNCTION__, app_name, desired_state);
      while (time_elapsed < timeout_ms) {
-          const char * state = SearchAppStatusInCacheLocked(app_name);
-          if (strcmp(state, "NOT_FOUND") == 0) {
+          std::string state = SearchAppStatusInCacheLocked(app_name);
+          if (state == "NOT_FOUND") {
                g_print("RTCACHE : %s application: %s Not found\n", __FUNCTION__, app_name);
                if (wait_for_stopped) {
                     result = true;
@@ -61,7 +61,7 @@ bool rtAppStatusCache::WaitForAppState(const char * app_name, const char * desir
                     break;
                }
           }
-          if (strcmp(state, desired_state) == 0) {
+          if (state == desired_state) {
                g_print("RTCACHE : %s desired state: %s, application: %s - leave\n", __FUNCTION__, desired_state, app_name);
                result = true;
                break;
@@ -82,7 +82,7 @@ bool rtAppStatusCache::WaitForAppState(const char * app_name, const char * desir
      return result;
 }
 
-const char * rtAppStatusCache::SearchAppStatusInCacheLocked(const char *app_name)
+std::string rtAppStatusCache::SearchAppStatusInCacheLocked(const char *app_name)
 {
      g_print("RTCACHE : %s\n",__FUNCTION__);
 
@@ -90,9 +90,9 @@ const char * rtAppStatusCache::SearchAppStatusInCacheLocked(const char *app_name
       {
          rtObjectRef state_param = ObjectCache->findObject(std::string(app_name));
 
-         char *state = strdup(state_param.get<rtString>("state").cString());
+         std::string state {state_param.get<rtString>("state").cString()};
          g_print("App Name = %s\nApp ID = %s\nError = %s\n",state_param.get<rtString>("applicationName").cString(),state_param.get<rtString>("applicationId").cString(),state_param.get<rtString>("error").cString());
-         g_print("App State = %s\n",state);
+         g_print("App State = %s\n",state.c_str());
          return state;
       }
 
@@ -100,7 +100,7 @@ const char * rtAppStatusCache::SearchAppStatusInCacheLocked(const char *app_name
 
 }
 
-const char * rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
+std::string rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
 {
      std::unique_lock<std::mutex> lock(CacheMutex);
      return SearchAppStatusInCacheLocked(app_name);

@@ -29,6 +29,8 @@
 #include <stdbool.h>
 #include <mutex>
 #include <condition_variable>
+#include <string>
+
 using namespace std;
 
 class rtAppStatusCache : public rtObject
@@ -37,11 +39,11 @@ public:
     rtAppStatusCache(rtRemoteEnvironment* env) {ObjectCache = new rtRemoteObjectCache(env);};
     ~rtAppStatusCache() {delete(ObjectCache); };
     rtError UpdateAppStatusCache(rtValue app_status);
-    const char * SearchAppStatusInCache(const char *app_name);
+    std::string SearchAppStatusInCache(const char *app_name);
     bool WaitForAppState(const char * app_name, const char * desired_state, unsigned int timeout_ms);
 private:
     bool doIdExist(std::string id);
-    const char * SearchAppStatusInCacheLocked(const char *app_name);
+    std::string SearchAppStatusInCacheLocked(const char *app_name);
     rtRemoteObjectCache* ObjectCache;
     std::mutex CacheMutex;
     std::condition_variable CacheCondVar;
