@@ -224,14 +224,6 @@ void *gdial_plat_application_stop_async(const gchar *app_name, gint instance_id,
   return app_async_context;
 }
 
-GDialAppError gdial_plat_application_state_wait(const gchar *app_name, gint instance_id, GDialAppState state, unsigned int tiemout_ms) {
-  g_print("GDIAL : Inside gdial_plat_application_state_wait\n");
-  g_return_val_if_fail(app_name != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
-  g_return_val_if_fail(instance_id != GDIAL_APP_INSTANCE_NONE, GDIAL_APP_ERROR_BAD_REQUEST);
-
-  return gdial_os_application_state_wait(app_name, instance_id, state, tiemout_ms) ? GDIAL_APP_ERROR_NONE : GDIAL_APP_ERROR_INTERNAL;
-}
-
 GDialAppError gdial_plat_application_state(const gchar *app_name, gint instance_id, GDialAppState *state) {
   g_print("GDIAL : Inside gdial_plat_application_state\n");
   g_return_val_if_fail(app_name != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
