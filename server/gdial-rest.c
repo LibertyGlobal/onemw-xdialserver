@@ -458,7 +458,13 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       soup_uri_get_host(soup_message_get_uri(msg)), listening_port, GDIAL_REST_HTTP_APPS_URI, app->name);
     gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
     if (new_app_instance) {
-      soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      if(app->state == GDIAL_APP_STATE_RUNNING) {
+        g_warn_if_reached();
+        soup_message_set_status(msg, SOUP_STATUS_OK);
+      }
+      else {
+        soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      }
       /*
        *@TODO msg->request_body may not need to be cached app->payload as it is
        * only used by shouldRelaunch(), which is not used and we don't support
@@ -472,7 +478,13 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       }
     }
     else {
-      soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      if(app->state == GDIAL_APP_STATE_RUNNING) {
+        soup_message_set_status(msg, SOUP_STATUS_OK);
+      }
+      else {
+        g_warn_if_reached();
+        soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      }
     }
   }
   else {
