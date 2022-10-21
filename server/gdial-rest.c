@@ -472,7 +472,10 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       }
     }
     else {
-      soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      if(app->state != GDIAL_APP_STATE_RUNNING) {
+        g_warn_if_reached();
+      }
+      soup_message_set_status(msg, SOUP_STATUS_OK);
     }
   }
   else {
