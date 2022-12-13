@@ -60,11 +60,11 @@ void gdial_plat_dev_power_mode_change(const char *owner, IARM_EventId_t eventId,
 
 void gdial_plat_dev_nwstandby_mode_change(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
 {
-  if ((strcmp(owner, IARM_BUS_PWRMGR_NAME)  == 0) && ( eventId == IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED )) {
+/* TODO  if ((strcmp(owner, IARM_BUS_PWRMGR_NAME)  == 0) && ( eventId == IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED )) {
     IARM_Bus_PWRMgr_EventData_t *param = (IARM_Bus_PWRMgr_EventData_t *)data;
     if(g_nwstandbymode_cb) g_nwstandbymode_cb(param->data.bNetworkStandbyMode);
     printf("gdial_plat_dev_nwstandby_mode_change  new nwstandby_mode :%d \n ",param->data.bNetworkStandbyMode);
-  }
+  } */
 }
 
 bool gdial_plat_dev_initialize() {
@@ -73,7 +73,7 @@ bool gdial_plat_dev_initialize() {
   IARM_Result_t res;
 
   IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME,IARM_BUS_PWRMGR_EVENT_MODECHANGED, gdial_plat_dev_power_mode_change);
-  IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME,IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED, gdial_plat_dev_nwstandby_mode_change);
+  // TODO IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME,IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED, gdial_plat_dev_nwstandby_mode_change);
 
   IARM_Bus_PWRMgr_GetPowerState_Param_t param;
   res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState,
