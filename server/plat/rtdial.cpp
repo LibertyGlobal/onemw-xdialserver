@@ -571,6 +571,8 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
     #else
     printf("RTDIAL gdial_os_application_hide: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     std::string State = AppCache->SearchAppStatusInCache(app_name);
+    if (State == "hidden" || State == "suspended")
+        return GDIAL_APP_ERROR_NONE;
     if (State != "running")
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->hideApplication(app_name,std::to_string(instance_id).c_str());
