@@ -82,6 +82,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
     GDIAL_CHECK("GET_method_only");
     GDIAL_DEBUG("warning: SSDP HTTP Method is not GET\r\n");
+    usleep(GDIAL_RESPONSE_DELAY);
     return;
   }
   /*
@@ -110,6 +111,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   soup_message_set_status(msg, SOUP_STATUS_OK);
   GDIAL_CHECK("Content-Type:text/xml");
   GDIAL_CHECK("Application-URL: exist");
+  usleep(GDIAL_RESPONSE_DELAY);
 }
 
 void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
