@@ -77,6 +77,9 @@ rtError rtAppStatusCache::UpdateAppStatusCache(rtValue app_status)
 
       err = ObjectCache->insert(id,temp);
       notifyStateChanged(App_name);
+      if (err == RT_OK) {
+          err = ObjectCache->markUnevictable(id, true);
+      }
       return err;
 }
 
