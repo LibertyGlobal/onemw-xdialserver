@@ -572,7 +572,7 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
     allow_stop = "false";
   }
   g_print("server_register_application allowStop:%s\n",allow_stop);
-  gchar *response_str = gdial_app_state_response_new(app, GDIAL_PROTOCOL_VERSION_STR, GDIAL_PROTOCOL_XMLNS_SCHEMA, &response_len);
+  gchar *response_str = gdial_app_state_response_new(app, GDIAL_PROTOCOL_VERSION_STR, client_dial_version, GDIAL_PROTOCOL_XMLNS_SCHEMA, &response_len);
   #endif
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_TAKE, response_str, response_len);
   if (app_state == GDIAL_APP_STATE_STOPPED) {

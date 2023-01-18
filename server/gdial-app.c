@@ -469,8 +469,14 @@ GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *ap
   return result;
 }
 
-gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const gchar *xmlns, int *len)
+gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, float client_dial_version, const gchar *xmlns, int *len)
 {
+  GDialAppState state = app->state;
+  if((client_dial_version+0.001) < 2.1f) {
+      g_print("gdial_app_state_response_new client:%f less than 2.1\n", client_dial_version);
+      state = (state == GDIAL_APP_STATE_HIDE) ? GDIAL_APP_STATE_STOPPED : state;
+  }
+
   g_return_val_if_fail(app && app->name && strlen(app->name), NULL);
   g_return_val_if_fail(dial_ver && xmlns && len, NULL);
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
@@ -486,7 +492,7 @@ gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const
   xmlNodePtr noptions = xmlNewChild(nservice, NULL, BAD_CAST "options", BAD_CAST NULL); {
     xmlNewProp(noptions, BAD_CAST "allowStop", BAD_CAST "true");
   }
-  xmlNewChild(nservice, NULL, BAD_CAST "state", BAD_CAST gdial_app_state_to_string(app->state));
+  xmlNewChild(nservice, NULL, BAD_CAST "state", BAD_CAST gdial_app_state_to_string(state));
   if (app->state != GDIAL_APP_STATE_STOPPED) {
     xmlNodePtr nlink  = xmlNewChild(nservice, NULL, BAD_CAST "link", BAD_CAST NULL);
     xmlNewProp(nlink, BAD_CAST "rel", BAD_CAST "run");
