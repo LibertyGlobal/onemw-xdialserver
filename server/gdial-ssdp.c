@@ -192,6 +192,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   ssdp_resource_id_ =
     gssdp_resource_group_add_resource_simple (ssdp_resource_group, dial_ssdp_ST_target, dial_ssdp_USN, dial_ssdp_LOCATION);
   gssdp_resource_group_set_available (ssdp_resource_group, FALSE);
+  gssdp_resource_group_set_max_age(ssdp_resource_group, 60);
   g_free(dial_ssdp_USN);
   g_free(dial_ssdp_LOCATION);
 
