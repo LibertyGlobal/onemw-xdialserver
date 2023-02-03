@@ -502,11 +502,11 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     if (strcmp(app_name,"system") == 0) {
         auto parsed_query{parse_query(query_string)};
         if (parsed_query["action"] == "sleep") {
-            //const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            //if (system_key && parsed_query["key"] != system_key) {
-            //    printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided %s\n", system_key);
-            //    return GDIAL_APP_ERROR_INTERNAL;
-            //}
+            const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
+            if (system_key && parsed_query["key"] != system_key) {
+                printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided %s\n", system_key);
+                return GDIAL_APP_ERROR_INTERNAL;
+            }
 
             send_close_request();
 
