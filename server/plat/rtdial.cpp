@@ -474,21 +474,25 @@ map<string,string> parse_query(const char* query_string) {
 }
 
 void send_close_request() {
-    SoupSession *session = soup_session_new();
+    int timeout_in_seconds = 3;
+    SoupSession *session = soup_session_new_with_options("timeout", timeout_in_seconds, NULL);
     SoupMessage *message = soup_message_new("PUT", "http://127.0.0.1:8081/vldms/sessionmgr/close");
 
-    soup_message_set_request(message, "application/json", SOUP_MEMORY_COPY, "{\"closeRequest\":{\"sessionType\":\"playbackMain\"}}", strlen("{\"closeRequest\":{\"sessionType\":\"playbackMain\"}}"));
+    static const char closeRequest[] = "{\"closeRequest\":{\"sessionType\":\"playbackMain\"}}";
+    soup_message_set_request(message, "application/json", SOUP_MEMORY_COPY, closeRequest, sizeof(closeRequest) - 1);
 
     guint status = soup_session_send_message(session, message);
     if (status == 200) {
       g_print("RTDIAL close request: %s\n", message->response_body->data);
-    } else {
+    } else if (status >= 100) {
       g_print("RTDIAL close request failed with status code: %d\n", status);
+    }
+    else {
+        g_print("Reason phrase: %s\n", message->reason_phrase);
     }
     g_object_unref(message);
     g_object_unref(session);
-
-    sleep(1);
+    usleep(100000);
 }
 
 int gdial_os_application_start(const char *app_name, const char *payload, const char *query_string, const char *additional_data_url, int *instance_id) {
@@ -498,11 +502,11 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     if (strcmp(app_name,"system") == 0) {
         auto parsed_query{parse_query(query_string)};
         if (parsed_query["action"] == "sleep") {
-            const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            if (system_key && parsed_query["key"] != system_key) {
-                printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided %s\n", system_key);
-                return GDIAL_APP_ERROR_INTERNAL;
-            }
+            //const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
+            //if (system_key && parsed_query["key"] != system_key) {
+            //    printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided %s\n", system_key);
+            //    return GDIAL_APP_ERROR_INTERNAL;
+            //}
 
             send_close_request();
 
