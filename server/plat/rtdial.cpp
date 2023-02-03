@@ -32,6 +32,7 @@
 #include <json/JsonData_StateControl.h>
 #include <com/Ids.h>
 #include <curl/curl.h>
+#include <libsoup/soup.h>
 #include <securityagent/SecurityTokenUtil.h>
 #include "gdial-app.h"
 #include "gdial-plat-dev.h"
@@ -472,6 +473,24 @@ map<string,string> parse_query(const char* query_string) {
     return ret;
 }
 
+void send_close_request() {
+    SoupSession *session = soup_session_new();
+    SoupMessage *message = soup_message_new("PUT", "http://127.0.0.1:8081/vldms/sessionmgr/close");
+
+    soup_message_set_request(message, "application/json", SOUP_MEMORY_COPY, "{\"closeRequest\":{\"sessionType\":\"playbackMain\"}}", strlen("{\"closeRequest\":{\"sessionType\":\"playbackMain\"}}"));
+
+    guint status = soup_session_send_message(session, message);
+    if (status == 200) {
+      g_print("RTDIAL close request: %s\n", message->response_body->data);
+    } else {
+      g_print("RTDIAL close request failed with status code: %d\n", status);
+    }
+    g_object_unref(message);
+    g_object_unref(session);
+
+    sleep(1);
+}
+
 int gdial_os_application_start(const char *app_name, const char *payload, const char *query_string, const char *additional_data_url, int *instance_id) {
     printf("RTDIAL gdial_os_application_start : Application launch request: appName: %s  query: [%s], payload: [%s], additionalDataUrl [%s]\n",
         app_name, query_string, payload, additional_data_url);
@@ -484,6 +503,9 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
                 printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided %s\n", system_key);
                 return GDIAL_APP_ERROR_INTERNAL;
             }
+
+            send_close_request();
+
             printf("RTDIAL: system app request to change device to sleep mode\n");
             gdial_plat_dev_set_power_state_off();
             return GDIAL_APP_ERROR_NONE;
