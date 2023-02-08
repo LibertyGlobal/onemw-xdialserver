@@ -456,7 +456,15 @@ void rtdial_term() {
 static bool await_application_state_update(const char *app_name);
 
 map<string,string> parse_query(const char* query_string) {
-    string query{query_string};
+    if (!query_string) return {};
+    char *unescaped = g_uri_unescape_string(query_string, nullptr);
+    // if unescaping failed due to invalid characters in the string, g_uri_unescape_segment returns null
+    // e.g. '%' character should be encoded as '%25'; we still fallback to undecoded string in such case
+    std::string query {unescaped ? unescaped : query_string};
+    if (unescaped) {
+        g_free(unescaped);
+        unescaped = nullptr;
+    }
     map<string,string> ret;
     size_t begin = 0, end;
 
@@ -504,7 +512,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         if (parsed_query["action"] == "sleep") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
             if (system_key && parsed_query["key"] != system_key) {
-                printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided %s\n", system_key);
+                printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided '%s'\n", parsed_query["key"].c_str());
                 return GDIAL_APP_ERROR_INTERNAL;
             }
 
