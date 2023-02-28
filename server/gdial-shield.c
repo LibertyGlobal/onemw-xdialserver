@@ -96,7 +96,6 @@ static void server_request_started_callback (SoupServer *server, SoupMessage *ms
     pthread_self(), msg, read_timeout_source, g_socket_get_fd(conn_context->read_gsocket));
   g_hash_table_insert(active_conns_, msg, conn_context);
   g_object_weak_ref(G_OBJECT(msg), (GWeakNotify)soup_message_weak_ref_callback, msg);
-  usleep(throttle);
 }
 
 void gdial_shield_init(void) {

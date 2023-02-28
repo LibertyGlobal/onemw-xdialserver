@@ -944,7 +944,6 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
       invalid_uri = TRUE;
     }
   }
-  usleep(GDIAL_RESPONSE_DELAY);
 
   gdial_rest_server_http_return_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED);
 }
