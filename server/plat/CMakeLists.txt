@@ -23,6 +23,8 @@ find_package(PkgConfig REQUIRED)
 #
 pkg_search_module(GLIB REQUIRED glib-2.0)
 pkg_search_module(GOBJECT REQUIRED gobject-2.0)
+pkg_search_module (SOUP REQUIRED libsoup-2.4)
+
 set (GDIAL_PLAT_DEPEND_LIBRARIES "${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -std=c++11 -Wno-nonnull -DRT_PLATFORM_LINUX")
@@ -48,10 +50,6 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/rtcast
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/pxcore
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/core/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/plugins/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/interfaces/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmbus/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmmgrs-hal/
 )
@@ -64,7 +62,6 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
-  ${PROJECT_SOURCE_DIR}/plat/Module.cpp
 )
 
 if(PLATFORM)
@@ -72,4 +69,4 @@ if(PLATFORM)
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lrtRemote -lrtCore -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkProtocols -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)
+target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} ${SOUP_LIBRARIES} -lpthread -lrtRemote -lrtCore -lIARMBus)

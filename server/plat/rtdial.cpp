@@ -25,15 +25,18 @@
 #include <atomic>
 #include <glib.h>
 
+#if 0
 #include "Module.h"
 #include <core.h>
 #include <plugins.h>
 #include <json/JsonData_Netflix.h>
 #include <json/JsonData_StateControl.h>
 #include <com/Ids.h>
+#include <securityagent/SecurityTokenUtil.h>
+#endif
+
 #include <curl/curl.h>
 #include <libsoup/soup.h>
-#include <securityagent/SecurityTokenUtil.h>
 #include "gdial-app.h"
 #include "gdial-plat-dev.h"
 #include "gdial-os-app.h"
@@ -532,9 +535,12 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     return GDIAL_APP_ERROR_NONE;
 }
 
+#if 0
 using namespace WPEFramework;
 JSONRPC::LinkType<Core::JSON::IElement> *netflixRemoteObject = NULL;
 JSONRPC::LinkType<Core::JSON::IElement> *controllerRemoteObject = NULL;
+#endif
+
 #define MAX_LENGTH 1024
 
 #ifdef NETFLIX_CALLSIGN_0
@@ -546,6 +552,7 @@ const std::string nfx_callsign = "Netflix";
 std::string GetCurrentState() {
      std::cout<<"GetCurrentState()"<<std::endl;
      std::string netflixState = "";
+#if 0
      Core::JSON::ArrayType<PluginHost::MetaData::Service> pluginResponse;
      Core::SystemInfo::SetEnvironment(_T("THUNDER_ACCESS"), (_T("127.0.0.1:9998")));
      unsigned char buffer[MAX_LENGTH] = {0};
@@ -573,10 +580,12 @@ std::string GetCurrentState() {
          } //end of while loop
      } //end of if case for querrying
      printf("Netflix State = %s\n",netflixState.c_str());
+#endif
      return netflixState;
 }
 void stop_netflix()
 {
+#if 0
    JsonObject parameters;
    JsonObject response;
    parameters["callsign"] = nfx_callsign;
@@ -585,6 +594,7 @@ void stop_netflix()
    } else {
         std::cout << "Netflix could not be deactivated" << std::endl;
    }
+#endif
 }
 
 int gdial_os_application_stop(const char *app_name, int instance_id) {
