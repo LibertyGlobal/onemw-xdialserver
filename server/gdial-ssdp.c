@@ -104,7 +104,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     dd_xml_response_str_len = strlen(dd_xml_response_str_);
   }
 
-  gchar *application_url_str = g_strdup_printf("http://%s:%d/%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT,app_random_uuid);
+  gchar *application_url_str = g_strdup_printf("http://%s:%d/%s/", iface_ipv4_address, gdial_options_->rest_http_port,app_random_uuid);
   soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
   g_free(application_url_str);
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);

@@ -218,6 +218,15 @@ int main(int argc, char *argv[]) {
 
   if (!options_.iface_name) options_.iface_name =  g_strdup(GDIAL_IFACE_NAME_DEFAULT);
 
+  options_.rest_http_port = GDIAL_REST_HTTP_PORT_DEFAULT;
+  char* gdial_rest_http_port_str = getenv("GDIAL_REST_HTTP_PORT");
+  if (gdial_rest_http_port_str != NULL) {
+    int port = atoi(gdial_rest_http_port_str);
+    if (port > 0 && port <= 65565) {
+      options_.rest_http_port = (guint)port;
+    }
+  }
+
   #define MAX_RETRY 3
   for(int i=1;i<=MAX_RETRY;i++) {
     iface_ipv4_address_ = gdial_plat_util_get_iface_ipv4_addr(options_.iface_name);
@@ -243,7 +252,8 @@ int main(int argc, char *argv[]) {
   soup_server_add_handler(rest_http_server, "/", gdial_http_server_throttle_callback, NULL, NULL);
   soup_server_add_handler(ssdp_http_server, "/", gdial_http_server_throttle_callback, NULL, NULL);
 
-  GSocketAddress *listen_address = g_inet_socket_address_new_from_string(iface_ipv4_address_, GDIAL_REST_HTTP_PORT);
+
+  GSocketAddress *listen_address = g_inet_socket_address_new_from_string(iface_ipv4_address_, options_.rest_http_port);
   gboolean success = soup_server_listen(rest_http_server, listen_address, 0, &error);
   g_object_unref (listen_address);
   if (!success) {
@@ -261,7 +271,7 @@ int main(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
     else {
-      success = soup_server_listen_local(local_rest_http_server, GDIAL_REST_HTTP_PORT, SOUP_SERVER_LISTEN_IPV4_ONLY, &error);
+      success = soup_server_listen_local(local_rest_http_server, options_.rest_http_port, SOUP_SERVER_LISTEN_IPV4_ONLY, &error);
       if (!success) {
         g_printerr("%s\r\n", error->message);
         g_error_free(error);
