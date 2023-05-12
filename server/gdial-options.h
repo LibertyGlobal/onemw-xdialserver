@@ -66,6 +66,7 @@ typedef struct {
   gchar *app_list;
   gboolean feature_friendlyname;
   gboolean feature_wolwake;
+  guint rest_http_port;
 } GDialOptions;
 
 #endif
