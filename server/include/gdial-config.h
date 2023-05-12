@@ -61,7 +61,7 @@ extern "C" {
  * server cmdline options
  */
 #define GDIAL_IFACE_NAME_DEFAULT "lo"
-#define GDIAL_REST_HTTP_PORT 56889
+#define GDIAL_REST_HTTP_PORT_DEFAULT 56889
 #define GDIAL_SSDP_HTTP_PORT 56890
 
 #define GDIAL_REST_HTTP_MAX_URI_LEN 1024
