@@ -52,6 +52,8 @@ check_function_exists (malloc HAVE_MALLOC)
 
 add_definitions(-DGDIAL_STATIC=extern -DGDIAL_STATIC_INLINE=extern)
 
+#add_subdirectory (plat)
+add_subdirectory (${PROJECT_SOURCE_DIR}/plat)
 
 include_directories (
   ${GLIB_INCLUDE_DIRS}
@@ -59,9 +61,6 @@ include_directories (
   ${SOUP_INCLUDE_DIRS}
   ${XML2_INCLUDE_DIRS}
 )
-
-#add_subdirectory (plat)
-add_subdirectory (${PROJECT_SOURCE_DIR}/plat)
 
 include_directories (
   ${PROJECT_SOURCE_DIR}/include
