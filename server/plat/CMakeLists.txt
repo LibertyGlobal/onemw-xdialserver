@@ -74,4 +74,4 @@ if(PLATFORM)
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} ${SOUP_LIBRARIES} -lpthread -lrtRemote -lrtCore -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkWebSocket -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)
+target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} ${SOUP_LIBRARIES} -lpthread -lrtRemote -lrtCore -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkWebSocket -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)
