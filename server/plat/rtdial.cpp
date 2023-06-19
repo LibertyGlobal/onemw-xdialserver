@@ -25,14 +25,21 @@
 #include <atomic>
 #include <glib.h>
 
+#if 0
 #include "Module.h"
 #include <core.h>
 #include <plugins.h>
 #include <json/JsonData_Netflix.h>
 #include <json/JsonData_StateControl.h>
 #include <com/Ids.h>
+#endif
+
 #include <curl/curl.h>
+
+#if 0
 #include <securityagent/SecurityTokenUtil.h>
+#endif
+
 #include "gdial-app.h"
 #include "gdial-plat-dev.h"
 #include "gdial-os-app.h"
@@ -506,6 +513,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     return GDIAL_APP_ERROR_NONE;
 }
 
+#if 0
 using namespace WPEFramework;
 JSONRPC::LinkType<Core::JSON::IElement> *netflixRemoteObject = NULL;
 JSONRPC::LinkType<Core::JSON::IElement> *controllerRemoteObject = NULL;
@@ -560,6 +568,7 @@ void stop_netflix()
         std::cout << "Netflix could not be deactivated" << std::endl;
    }
 }
+#endif
 
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
@@ -572,6 +581,7 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
     if (0 && State != "running")
         return GDIAL_APP_ERROR_BAD_REQUEST;
 
+#if 0
     char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
     if ( enable_stop != NULL ) {
        if ( strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
@@ -580,6 +590,7 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
            sleep(1);
        }
     }
+#endif
     rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str()); 
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
         printf("RTDIAL: DialObj.stopApplication failed!!! Error=%s\n",rtStrError(RTCAST_ERROR_RT(ret)));
@@ -672,7 +683,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     else {
         *state = GDIAL_APP_STATE_STOPPED;
     }
-
+#if 0
     char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
     if ( enable_stop != NULL ) {
        if (strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
@@ -692,7 +703,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
          }		 
        }
     }
-
+#endif
     return GDIAL_APP_ERROR_NONE;
 }
 

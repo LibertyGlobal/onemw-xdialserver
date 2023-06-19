@@ -50,10 +50,6 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/rtcast
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/pxcore
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/core/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/plugins/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/interfaces/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmbus/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmmgrs-hal/
 )
@@ -66,7 +62,6 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
-  ${PROJECT_SOURCE_DIR}/plat/Module.cpp
 )
 
 if(PLATFORM)
@@ -74,4 +69,4 @@ if(PLATFORM)
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} ${SOUP_LIBRARIES} -lpthread -lrtRemote -lrtCore -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkWebSocket -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)
+target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} ${SOUP_LIBRARIES} -lpthread -lrtRemote -lrtCore -lIARMBus)
