@@ -17,6 +17,8 @@
 # limitations under the License.
 ##########################################################################
 
+option(STOP_NETFLIX_BY_PLUGIN_API "Stop netflix by plugin API." ON)
+
 find_package(PkgConfig REQUIRED)
 #
 # Implementation specific dependencies
@@ -54,6 +56,16 @@ include_directories(
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmmgrs-hal/
 )
 
+if (STOP_NETFLIX_BY_PLUGIN_API)
+include_directories(
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/core/
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/plugins/
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/interfaces/
+)
+add_definitions(-DSTOP_NETFLIX_BY_PLUGIN_API)
+endif()
+
 set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-app.c
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-dev.c
@@ -64,9 +76,20 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
 )
 
+if (STOP_NETFLIX_BY_PLUGIN_API)
+set(GDIAL_PLAT_LIB_SOURCE_FILES
+  ${GDIAL_PLAT_LIB_SOURCE_FILES}
+  ${PROJECT_SOURCE_DIR}/plat/Module.cpp
+)
+endif()
+
 if(PLATFORM)
   add_definitions(${PLATFORM})
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
 target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} ${SOUP_LIBRARIES} -lpthread -lrtRemote -lrtCore -lIARMBus)
+
+if (STOP_NETFLIX_BY_PLUGIN_API)
+target_link_Libraries(gdial-plat PRIVATE -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkWebSocket -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil)
+endif()
