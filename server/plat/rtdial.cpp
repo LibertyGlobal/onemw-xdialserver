@@ -25,20 +25,20 @@
 #include <atomic>
 #include <glib.h>
 
-#if 0
+#if STOP_NETFLIX_BY_PLUGIN_API
 #include "Module.h"
 #include <core.h>
 #include <plugins.h>
 #include <json/JsonData_Netflix.h>
 #include <json/JsonData_StateControl.h>
 #include <com/Ids.h>
-#endif
+#endif /* STOP_NETFLIX_BY_PLUGIN_API */
 
 #include <curl/curl.h>
 
-#if 0
+#if STOP_NETFLIX_BY_PLUGIN_API
 #include <securityagent/SecurityTokenUtil.h>
-#endif
+#endif /* STOP_NETFLIX_BY_PLUGIN_API */
 
 #include "gdial-app.h"
 #include "gdial-plat-dev.h"
@@ -513,7 +513,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     return GDIAL_APP_ERROR_NONE;
 }
 
-#if 0
+#if STOP_NETFLIX_BY_PLUGIN_API
 using namespace WPEFramework;
 JSONRPC::LinkType<Core::JSON::IElement> *netflixRemoteObject = NULL;
 JSONRPC::LinkType<Core::JSON::IElement> *controllerRemoteObject = NULL;
@@ -568,7 +568,7 @@ void stop_netflix()
         std::cout << "Netflix could not be deactivated" << std::endl;
    }
 }
-#endif
+#endif /* STOP_NETFLIX_BY_PLUGIN_API */
 
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
@@ -581,7 +581,7 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
     if (0 && State != "running")
         return GDIAL_APP_ERROR_BAD_REQUEST;
 
-#if 0
+#if STOP_NETFLIX_BY_PLUGIN_API
     char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
     if ( enable_stop != NULL ) {
        if ( strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
@@ -590,7 +590,7 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
            sleep(1);
        }
     }
-#endif
+#endif /* STOP_NETFLIX_BY_PLUGIN_API */
     rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str()); 
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
         printf("RTDIAL: DialObj.stopApplication failed!!! Error=%s\n",rtStrError(RTCAST_ERROR_RT(ret)));
@@ -604,7 +604,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
         printf("RTDIAL system app already in hidden state\n");
         return GDIAL_APP_ERROR_NONE;
     }
-    #if 0
+#if STOP_NETFLIX_BY_PLUGIN_API
     printf("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     std::string State = AppCache->SearchAppStatusInCache(app_name);
     if (0 && State != "running") {
@@ -629,7 +629,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
         return GDIAL_APP_ERROR_INTERNAL;
     }
     return GDIAL_APP_ERROR_NONE;
-    #endif
+#endif /* STOP_NETFLIX_BY_PLUGIN_API */
 }
 
 int gdial_os_application_resume(const char *app_name, int instance_id) {
@@ -683,7 +683,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     else {
         *state = GDIAL_APP_STATE_STOPPED;
     }
-#if 0
+#if STOP_NETFLIX_BY_PLUGIN_API
     char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
     if ( enable_stop != NULL ) {
        if (strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
@@ -703,7 +703,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
          }		 
        }
     }
-#endif
+#endif /* STOP_NETFLIX_BY_PLUGIN_API */
     return GDIAL_APP_ERROR_NONE;
 }
 
