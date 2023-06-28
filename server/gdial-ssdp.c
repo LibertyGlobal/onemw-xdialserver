@@ -164,11 +164,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   }
 
   gdail_plat_dev_register_nwstandbymode_cb(gdial_ssdp_networkstandbymode_handler);
-  //bool nwstandby_mode = gdial_plat_dev_get_nwstandby_mode();
-  bool nwstandby_mode = true;
-  // in our case implementation could return false here
-  // WAKEUP header would not be appended in such case
-  // observe fails on the following test: yts test <device id> "YouTube DIAL WakeUp Protocol"
+  bool nwstandby_mode = gdial_plat_dev_get_nwstandby_mode();
   g_print("gdial_ssdp_new nwstandby_mode:%d \n",nwstandby_mode);
   /*
    * setup configurable headers.
