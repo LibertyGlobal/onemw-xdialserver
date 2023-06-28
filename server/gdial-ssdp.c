@@ -163,9 +163,14 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
       return EXIT_FAILURE;
   }
 
+#ifdef PWR_MGR_NW_STANDBY_MODE_SUPPORTED // ARRISAPP-483
   gdail_plat_dev_register_nwstandbymode_cb(gdial_ssdp_networkstandbymode_handler);
   bool nwstandby_mode = gdial_plat_dev_get_nwstandby_mode();
   g_print("gdial_ssdp_new nwstandby_mode:%d \n",nwstandby_mode);
+#else
+  bool nwstandby_mode = true;
+  g_print("gdial_ssdp_new: GetNetworkStandbyMode unsupported; nwstandby_mode assumed true\n");
+#endif
   /*
    * setup configurable headers.
    * header "SERVER" is populated by gssdp.
