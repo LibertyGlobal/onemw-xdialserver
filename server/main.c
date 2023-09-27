@@ -181,13 +181,19 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
 
+static gboolean _plat_terminate_and_exit_loop(gpointer _) {
+  printf("_plat_terminate_and_exit_loop\n"); fflush(stdout);
+  gdial_plat_term();
+  if(loop_)g_main_loop_quit(loop_);
+  return FALSE;
+}
+
 static void gdial_quit_thread(int signum)
 {
   g_print("Exiting DIAL Server thread %d \r\n",signum);
   server_activation_handler(0, "");
-  usleep(50000);               //Sleeping 50 ms to allow existing request to finish processing.
-  g_print(" calling g_main_loop_quit loop_: %p \r\n",loop_);
-  if(loop_)g_main_loop_quit(loop_);
+  g_print(" calling _plat_terminate_and_exit_loop\n");
+  g_idle_add(_plat_terminate_and_exit_loop, NULL);
 }
   
 static char* get_app_name(const char *config_name)
@@ -205,7 +211,6 @@ static char* get_app_name(const char *config_name)
 }
 
 int main(int argc, char *argv[]) {
-
   GError *error = NULL;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
@@ -364,9 +369,10 @@ int main(int argc, char *argv[]) {
   gdial_shield_term();
   gdial_ssdp_destroy();
   g_object_unref(dial_rest_server);
-  gdial_plat_term();
 
   g_main_loop_unref(loop_);
+
+  loop_ = NULL;
   g_option_context_free(option_context);
   return 0;
 }

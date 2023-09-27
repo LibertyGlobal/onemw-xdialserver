@@ -275,9 +275,13 @@ void gdial_plat_application_remove_async_source(void *async_source) {
 }
 
 void gdial_plat_term() {
+  g_print("gdial_plat_term\n");
   rtdial_term();
-  g_main_context_unref(g_main_context_);
   g_warn_if_fail(g_hash_table_size(gdial_plat_app_async_contexts) == 0);
   g_hash_table_unref(gdial_plat_app_async_contexts);
+  if (g_main_context_) {
+     g_main_context_unref(g_main_context_);
+     g_main_context_ = NULL;
+  }
   return;
 }
