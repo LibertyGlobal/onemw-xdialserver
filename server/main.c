@@ -192,9 +192,12 @@ static gboolean _plat_terminate_and_exit_loop(gpointer _) {
   return FALSE;
 }
 
+static gboolean sigusr1_signal_term = FALSE;
+
 static void gdial_quit_thread(int signum)
 {
   g_print("Exiting DIAL Server thread %d \r\n",signum);
+  sigusr1_signal_term = (signum == SIGUSR1);
   server_activation_handler(0, "");
   g_print(" calling _plat_terminate_and_exit_loop\n");
   g_idle_add(_plat_terminate_and_exit_loop, NULL);
@@ -397,6 +400,8 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   signal(SIGTERM,gdial_quit_thread);
+  signal(SIGUSR1,gdial_quit_thread);
+
   g_main_loop_run (loop_);
 
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
@@ -414,5 +419,5 @@ int main(int argc, char *argv[]) {
   g_option_context_free(option_context);
   g_print("xdial finished; closing the lock file\n");
   close(lock_file);
-  return 0;
+  return sigusr1_signal_term ? EXIT_FAILURE : 0;
 }
