@@ -39,6 +39,10 @@
 #include "gdial_app_registry.h"
 #include <uuid/uuid.h>
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+
 static const char *dial_specification_copyright = "Copyright (c) 2017 Netflix, Inc. All rights reserved.";
 
 #define MAX_UUID_SIZE 64
@@ -210,7 +214,41 @@ static char* get_app_name(const char *config_name)
     return app_name;
 }
 
+static long long current_time_ms() {
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
+    perror("couldn't clock_gettime\n");
+    exit(1);
+  }
+  return (long long)(1e9 * ts.tv_sec + ts.tv_nsec) / 1e6;
+}
+
+static int acquire_lock_file() {
+  static const int MAX_LOCK_WAIT_TIME_MS = 5000;
+  const long long end_wait_time_ms = current_time_ms() + MAX_LOCK_WAIT_TIME_MS;
+  int lock_file = open("/tmp/xdial.lock", O_CREAT | O_RDWR, 0600);
+  if (lock_file == -1) {
+    perror("Unable to open lock file");
+    exit(1);
+  }
+  g_print("opened lock file; try to lock it\n");
+  while (flock(lock_file, LOCK_EX | LOCK_NB) == -1) {
+      long long current_ts = current_time_ms();
+      if (current_ts > end_wait_time_ms) {
+        perror("Failed to obtain lock file\n");
+        exit(1);
+      } else {
+        g_print("file locked, try again in a while ... time left: %lld\n", end_wait_time_ms - current_ts);
+        usleep(500000);
+      }
+  }
+  g_print("lock file acquired\n");
+  return lock_file;
+}
+
 int main(int argc, char *argv[]) {
+  int lock_file = acquire_lock_file();
+
   GError *error = NULL;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
@@ -374,5 +412,7 @@ int main(int argc, char *argv[]) {
 
   loop_ = NULL;
   g_option_context_free(option_context);
+  g_print("xdial finished; closing the lock file\n");
+  close(lock_file);
   return 0;
 }
