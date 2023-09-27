@@ -435,8 +435,8 @@ void rtdial_term() {
     printf("RTDIAL: %s \n",__FUNCTION__);
 
     gdial_plat_dev_deinitialize();
-    g_main_context_unref(main_context_);
-    g_source_unref(remoteSource);
+    if (remoteSource) g_source_unref(remoteSource);
+    remoteSource = nullptr;
 
     DialObj->bye();
     delete (AppCache);
@@ -444,6 +444,11 @@ void rtdial_term() {
     if (e != RT_OK)
     {
       printf("RTDIAL: rtRemoteShutdown failed: %s \n", rtStrError(e));
+    }
+
+    if (main_context_) {
+        g_main_context_unref(main_context_);
+        main_context_ = nullptr;
     }
     //delete(DialObj);
 }

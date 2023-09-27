@@ -170,8 +170,8 @@ static void gdial_app_class_init (GDialAppClass *klass) {
             NULL, /* c_marshaller, use default */
             G_TYPE_NONE, 1, /* return type, arg num */
             G_TYPE_POINTER); /* arg types */
-
-  gdial_plat_init(g_main_context_default());
+  // gdial_plat_init already called in main init sequence!
+  // gdial_plat_init(g_main_context_default());
   gdial_plat_application_set_state_cb(gdial_plat_app_state_cb, NULL);
 }
 
