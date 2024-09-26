@@ -177,6 +177,8 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
    * header "EXT" is mandatory, set by gssdp
    * header "CACHE-CONTROL" is mandatory, set by gssdp, default 1800
    */
+  char * cpeId = getenv("CPE_ID");
+  if (cpeId) gssdp_client_set_server_id(ssdp_client, cpeId);
   gssdp_client_append_header(ssdp_client, "BOOTID.UPNP.ORG", "1");
   if(gdial_options_->feature_wolwake && nwstandby_mode) {
     g_print("WOL Wake feature is enabled");
