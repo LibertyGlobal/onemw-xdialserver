@@ -87,7 +87,6 @@ static void soup_message_weak_ref_callback(gpointer user_data, GObject *obj) {
 static void server_request_started_callback (SoupServer *server, SoupMessage *msg,
     SoupClientContext *context, gpointer data) {
 
-  static const int throttle = GDIAL_THROTTLE_DELAY_US;
   DialShieldConnectionContext *conn_context = g_new(DialShieldConnectionContext, 1);
   guint read_timeout_source = g_timeout_add(2000, (GSourceFunc)soup_message_read_timeout_callback, msg);
   conn_context->read_gsocket = soup_client_context_get_gsocket(context);
@@ -96,7 +95,6 @@ static void server_request_started_callback (SoupServer *server, SoupMessage *ms
     pthread_self(), msg, read_timeout_source, g_socket_get_fd(conn_context->read_gsocket));
   g_hash_table_insert(active_conns_, msg, conn_context);
   g_object_weak_ref(G_OBJECT(msg), (GWeakNotify)soup_message_weak_ref_callback, msg);
-  usleep(throttle);
 }
 
 void gdial_shield_init(void) {
