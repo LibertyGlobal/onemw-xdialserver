@@ -23,20 +23,12 @@
 #include "gdial-config.h"
 #include "gdial-util.h"
 
-gchar *gdial_util_str_str_hashtable_to_string(const GHashTable *ht, const gchar *delimiter, gboolean newline, gsize *length) {
+gchar *gdial_util_str_str_hashtable_to_string(const GHashTable *ht, gsize *length) {
 
   g_return_val_if_fail(ht != NULL && length != NULL, NULL);
-  if (delimiter == NULL) delimiter = " ";
-
-  GHashTableIter iter;
-  gpointer key, value;
-  g_hash_table_iter_init(&iter, (GHashTable *)ht);
-  GString *value_buf = g_string_new("");
-  while (g_hash_table_iter_next(&iter, &key, &value)) {
-    g_string_append_printf(value_buf, "%s%s%s%s", (gchar *)key, (gchar *)delimiter, (gchar *)value, newline ? "\r\n" : "");
-  }
-  *length = value_buf->len;
-  return g_string_free(value_buf, FALSE);
+  char * result = soup_form_encode_hash((GHashTable *)ht);
+  *length = result ? strlen(result) : 0;
+  return result;
 }
 
 gchar *gdial_util_str_str_hashtable_to_xml_string(const GHashTable *ht, gsize *length) {
@@ -56,15 +48,19 @@ gchar *gdial_util_str_str_hashtable_to_xml_string(const GHashTable *ht, gsize *l
 
 gboolean gdial_util_str_str_hashtable_from_string(const gchar *ht_str, gsize length, GHashTable *ht) {
   g_return_val_if_fail(ht_str != NULL && ht != NULL, FALSE);
-  char key[GDIAL_APP_DIAL_DATA_MAX_KV_LEN+1] = {0};
-  char value[GDIAL_APP_DIAL_DATA_MAX_KV_LEN+1] = {0};
-  int used = 0, ret = 0;
-
-  while( used < length && (ret = sscanf(&ht_str[used], "%"GDIAL_APP_DIAL_DATA_MAX_KV_LEN_STR"s %"GDIAL_APP_DIAL_DATA_MAX_KV_LEN_STR"s""\r\n", key, value)) > 0) {
-    g_hash_table_insert(ht, g_strdup(key), g_strdup(value));
-    used += strlen(key) + strlen(value) + strlen(" \r\n");
+  gboolean result = FALSE;
+  GHashTable *items = soup_form_decode(ht_str);
+  if (items) {
+    GHashTableIter iter;
+    gpointer key, value;
+    g_hash_table_iter_init(&iter, items);
+    while (g_hash_table_iter_next(&iter, &key, &value)) {
+      g_hash_table_insert(ht, g_strdup(key), g_strdup(value));
+    }
+    g_hash_table_destroy(items);
+    result = TRUE;
   }
-  return TRUE;
+  return result;
 }
 
 GHashTable * gdial_util_str_str_hashtable_merge(GHashTable *dst, const GHashTable *src) {
