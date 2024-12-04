@@ -339,7 +339,7 @@ void gdial_app_set_additional_dial_data(GDialApp *app, GHashTable *additional_di
   priv->additional_dial_data = gdial_util_str_str_hashtable_dup(additional_dial_data);
   /* cache the additional_dial_data */
   size_t length = 0;
-  gchar *query_str = gdial_util_str_str_hashtable_to_string(additional_dial_data, NULL, TRUE, &length);
+  gchar *query_str = gdial_util_str_str_hashtable_to_string(additional_dial_data, &length);
   if (query_str) {
     gdial_app_write_additional_dial_data(app->name, query_str, length);
   }

@@ -23,7 +23,7 @@
 #include <glib.h>
 G_BEGIN_DECLS
 
-gchar *gdial_util_str_str_hashtable_to_string(const GHashTable *ht, const gchar *delimiter, gboolean newline, gsize *length);
+gchar *gdial_util_str_str_hashtable_to_string(const GHashTable *ht, gsize *length);
 gboolean gdial_util_str_str_hashtable_from_string(const gchar *ht_str, gsize length, GHashTable *ht);
 gchar *gdial_util_str_str_hashtable_to_xml_string(const GHashTable *ht, gsize *length);
 GHashTable *gdial_util_str_str_hashtable_merge(GHashTable *ht_dst, const GHashTable *ht_src);
